@@ -1,0 +1,4 @@
+python-lsp-server[rope]
+python-lsp-black
+python-lsp-ruff
+pylsp-rope
