@@ -3,3 +3,4 @@ gymnasium[atari,box2d,classic-control,toy-text] >=0.26.0, <1.0.0
 tqdm
 safetensors
 tensorboard
+numpy
