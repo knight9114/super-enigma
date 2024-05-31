@@ -1,0 +1,9 @@
+jax
+jaxtyping
+flax
+optax
+safetensors
+datasets[vision,jax]
+numpy
+tensorboardX
+tensorboard
