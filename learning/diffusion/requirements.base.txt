@@ -7,3 +7,4 @@ datasets[vision,jax]
 numpy
 tensorboardX
 tensorboard
+tqdm
