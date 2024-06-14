@@ -20,13 +20,21 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 from jaxtyping import Array, PRNGKeyArray
+import flax
 from flax import linen as nn
-from flax.training import train_state
+from flax.training import checkpoints, train_state
 import optax  # type: ignore
 from datasets import Dataset, load_dataset  # type: ignore
 from PIL.Image import Resampling
 from tensorboardX import SummaryWriter  # type: ignore
 import tqdm
+
+
+# -------------------------------------------------------------------------
+#   Setup
+# -------------------------------------------------------------------------
+
+flax.config.update("flax_use_orbax_checkpointing", False)
 
 
 # -------------------------------------------------------------------------
@@ -301,6 +309,8 @@ def train(
     n_diffusion_steps: int,
     betas: Array,
     ema: float,
+    keep_n_checkpoints: int,
+    checkpoint_every_n_steps: int,
 ):
     kinit, kdata, kstate, rng = jax.random.split(rng, 4)
     imshape = dataset["image"][0].shape
@@ -339,6 +349,13 @@ def train(
             )
         )
         writer.add_scalars("training", metrics, step)
+        if step % (checkpoint_every_n_steps - 1) == 0:
+            checkpoints.save_checkpoint(
+                ckpt_dir=Path(writer.logdir) / "checkpoints",
+                target=state.params,
+                step=step + 1,
+                keep=keep_n_checkpoints,
+            )
 
 
 @jax.jit
@@ -402,6 +419,8 @@ def parse_cli_arguments(argv: tuple[str, ...] | None = None) -> Namespace:
             n_diffusion_steps=args.n_diffusion_steps,
             betas=args.beta_factory(args),
             ema=args.ema,
+            keep_n_checkpoints=args.keep_n_checkpoints,
+            checkpoint_every_n_steps=args.checkpoint_every_n_steps,
         ),
         model_factory=lambda args: Unet(
             init_channels=args.d_model,
@@ -482,6 +501,8 @@ def parse_cli_arguments(argv: tuple[str, ...] | None = None) -> Namespace:
     exp.add_argument("--experiment-dir", type=Path, default=Path("./experiments"))
     exp.add_argument("--experiment-name")
     exp.add_argument("--experiment-version")
+    exp.add_argument("--keep-n-checkpoints", type=int, default=5)
+    exp.add_argument("--checkpoint-every-n-steps", type=int, default=100)
 
     sys = trainer.add_argument_group("System Arguments")
     sys.add_argument("--seed", type=int, default=randbits(30))
